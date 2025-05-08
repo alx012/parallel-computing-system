@@ -1,6 +1,7 @@
 import time
+import multiprocessing
 from db_utils import init_db, get_all_results, get_final_result
-from dag_utils import draw_dag, execute_modules
+from dag_utils import draw_dag, execute_modules_parallel
 from modules_config import get_modules_config, user_inputs
 
 def print_module_descriptions():
@@ -31,38 +32,39 @@ def main():
     """主程式"""
     # 初始化資料庫
     init_db()
-    
+
     # 顯示說明
     print_module_descriptions()
-    
+
+    # 獲取用戶輸入
+    get_user_inputs()
+
     # 獲取模組配置
     modules = get_modules_config(user_inputs)
-    
+
     # 顯示模組依賴圖
     print("\n首先顯示模組依賴關係圖：")
     draw_dag(modules)
-    
-    # 獲取用戶輸入
-    get_user_inputs()
-    
+
     print("\n開始執行模組計算...")
-    
-    # 執行模組並計時
+
+    # 執行模組並計時（使用 multiprocessing）
     start = time.time()
-    execute_modules(modules)
-    
+    execute_modules_parallel(modules)
+
     # 顯示所有結果
     print("\n=== 所有模組結果 ===")
     for module_id, result in get_all_results():
         print(f"模組 {module_id}：{result}")
-    
+
     # 顯示最終結果
     final_result = get_final_result()
     if final_result:
         print("\n===== 最終計算結果 =====")
         print(f"最終結果：{final_result.get('final_result', '計算失敗')}")
-    
+
     print(f"\n總耗時：{time.time() - start:.2f} 秒")
 
 if __name__ == "__main__":
+    multiprocessing.set_start_method("spawn")  # macOS 安全平行啟動方式
     main()
